@@ -48,15 +48,22 @@ void fast_planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg
 void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
-    distance_to_goal = sqrt(  pow(_DroneState.position[0] - goal.pose.position.x, 2) 
-                            + pow(_DroneState.position[1] - goal.pose.position.y, 2) );
+    distance_to_goal = sqrt(pow(_DroneState.position[0] - goal.pose.position.x, 2) +
+                pow(_DroneState.position[1] - goal.pose.position.y, 2) +
+                pow(_DroneState.position[2] - goal.pose.position.z, 2));
 }
 
 void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
-    goal = *msg;
     flag_get_goal = 1;
-    cout << "[mission] Get a new goal!"<<endl;
+
+    goal = *msg;
+    goal.pose.position.z = _DroneState.position[2];
+
+    cout << "[mission] Get a new goal: " <<
+    goal.pose.position.x << ", " <<
+    goal.pose.position.y << ", " <<
+    goal.pose.position.z << endl;
 }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>主 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -89,7 +96,7 @@ int main(int argc, char **argv)
         //回调
         ros::spinOnce();
 
-        if( flag_get_cmd == 0)
+        if(flag_get_cmd == 0)
         {
             if(exec_num == 10)
             {
