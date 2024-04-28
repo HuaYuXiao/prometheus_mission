@@ -1,25 +1,30 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>prometheus_mission</name>
-  <version>1.0.0</version>
-  <description>The prometheus_mission package</description>
+  <version>1.1.1</version>
+  <description>
+    The prometheus_mission package
+  </description>
 
   <maintainer email="hyx020222@gmail.com">Eason Hua</maintainer>
   <author email="fatmoonqyp@126.com">Yuhua Qi</author>
-  <license>MIT</license>
+  <license>Apache</license>
 
   <url type="website">http://www.amovauto.com/</url>
-  <url type="repository">https://github.com/amov-lab/Prometheus.git</url>
-
-  <build_depend>message_generation</build_depend>
-  <build_depend>std_msgs</build_depend>
-
-  <exec_depend>message_runtime</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
+  <url type="repository">https://github.com/HuaYuXiao/prometheus_mission.git</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>quadrotor_msgs</build_depend>
+
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+    <exec_depend>quadrotor_msgs</exec_depend>
+
   <build_export_depend>std_msgs</build_export_depend>
+    <build_export_depend>quadrotor_msgs</build_export_depend>
 
   <export>
 
