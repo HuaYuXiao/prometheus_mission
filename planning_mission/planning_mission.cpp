@@ -14,6 +14,7 @@
 #include <prometheus_msgs/PositionReference.h>
 #include <prometheus_msgs/AttitudeReference.h>
 #include "message_utils.h"
+//#include <quadrotor_msgs/PositionReference.h>
 
 using namespace std;
 
@@ -39,22 +40,19 @@ float distance_to_goal = 0;
 void Fast_planner();
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回 调 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void fast_planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg)
-{
+void fast_planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg){
     flag_get_cmd = 1;
     fast_planner_cmd = *msg;
 }
 
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
-{
+void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg){
     _DroneState = *msg;
     distance_to_goal = sqrt(pow(_DroneState.position[0] - goal.pose.position.x, 2) +
                 pow(_DroneState.position[1] - goal.pose.position.y, 2) +
                 pow(_DroneState.position[2] - goal.pose.position.z, 2));
 }
 
-void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
-{
+void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
     flag_get_goal = 1;
 
     goal = *msg;
@@ -67,8 +65,7 @@ void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>主 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
     ros::init(argc, argv, "planning_mission");
     ros::NodeHandle nh("~");
 
@@ -79,9 +76,9 @@ int main(int argc, char **argv)
     //【订阅】无人机当前状态
     ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
     //【订阅】来自planning的指令
-    ros::Subscriber fast_planner_sub = nh.subscribe<prometheus_msgs::PositionReference>("/prometheus/fast_planner/position_cmd", 50, fast_planner_cmd_cb);
+    ros::Subscriber planner_sub = nh.subscribe<prometheus_msgs::PositionReference>("/prometheus/position_cmd", 50, fast_planner_cmd_cb);
     //【订阅】目标点
-    ros::Subscriber goal_sub = nh.subscribe<geometry_msgs::PoseStamped>("/prometheus/planning/goal", 10, goal_cb);
+    ros::Subscriber goal_sub = nh.subscribe<geometry_msgs::PoseStamped>("/prometheus/planning/goal", 1, goal_cb);
     
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
     command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);

@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.8.3)
 project(prometheus_mission)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
 set(CMAKE_CXX_FLAGS "-std=c++14")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
@@ -22,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_eigen
   mavros_msgs
   prometheus_msgs
+        quadrotor_msgs
 )
 ##  System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
