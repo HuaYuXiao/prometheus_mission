@@ -3,8 +3,10 @@
 #include <Eigen/Eigen>
 #include <iostream>
 #include <iomanip>
+#include <tf2/LinearMath/Quaternion.h>
 //topic 头文件
 #include <mission_utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
@@ -27,7 +29,7 @@ prometheus_msgs::ControlCommand Command_Now;                               //发
 prometheus_msgs::DroneState _DroneState;                                   //无人机状态量
 ros::Publisher command_pub;
 
-geometry_msgs::PoseStamped goal;                              // goal
+geometry_msgs::PoseStamped final_goal;                              // goal
 prometheus_msgs::PositionReference planner_cmd;          // fast planner cmd
 
 bool sim_mode;
@@ -36,6 +38,7 @@ int flag_get_cmd = 0;
 int flag_get_goal = 0;
 float desired_yaw = 0;  //[rad]
 float distance_to_goal = 0;
+double last_angle;
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>声 明 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 void planner();
@@ -74,21 +77,35 @@ void quadrotor_planner_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& m
 
 void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg){
     _DroneState = *msg;
-    distance_to_goal = sqrt(pow(_DroneState.position[0] - goal.pose.position.x, 2) +
-                pow(_DroneState.position[1] - goal.pose.position.y, 2) +
-                pow(_DroneState.position[2] - goal.pose.position.z, 2));
+
+    distance_to_goal = sqrt(pow(_DroneState.position[0] - final_goal.pose.position.x, 2) +
+                            pow(_DroneState.position[1] - final_goal.pose.position.y, 2) +
+                            pow(_DroneState.position[2] - final_goal.pose.position.z, 2));
+
+    tf2::Quaternion final_goal_q(final_goal.pose.orientation.x,
+                                 final_goal.pose.orientation.y,
+                                 final_goal.pose.orientation.z,
+                                 final_goal.pose.orientation.w);
+
+    tf2::Quaternion drone_state_q(_DroneState.attitude_q.x,
+                                  _DroneState.attitude_q.y,
+                                  _DroneState.attitude_q.z,
+                                  _DroneState.attitude_q.w);
+
+    double dot_product = final_goal_q.dot(drone_state_q);
+    last_angle = acos(dot_product);
 }
 
 void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
     flag_get_goal = 1;
 
-    goal = *msg;
-    goal.pose.position.z = _DroneState.position[2];
+    final_goal = *msg;
+    final_goal.pose.position.z = _DroneState.position[2];
 
     cout << "[mission] Get a new goal: " <<
-    goal.pose.position.x << ", " <<
-    goal.pose.position.y << ", " <<
-    goal.pose.position.z << endl;
+    final_goal.pose.position.x << ", " <<
+    final_goal.pose.position.y << ", " <<
+    final_goal.pose.position.z << endl;
 }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>主 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -117,6 +134,8 @@ int main(int argc, char **argv){
     // 设置cout的精度为小数点后两位
     std::cout << std::fixed << std::setprecision(2);
 
+    cout << "[mission] prometheus_mission initialized!" << endl;
+
     while (ros::ok()){
         static int exec_num=0;
         exec_num++;
@@ -138,16 +157,14 @@ int main(int argc, char **argv){
             Command_Now.source = NODE_NAME;
             Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
             Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
-            Command_Now.Reference_State.position_ref[0]     = goal.pose.position.x;
-            Command_Now.Reference_State.position_ref[1]     = goal.pose.position.y;
-            Command_Now.Reference_State.position_ref[2]     = goal.pose.position.z;
+            Command_Now.Reference_State.position_ref[0]     = final_goal.pose.position.x;
+            Command_Now.Reference_State.position_ref[1]     = final_goal.pose.position.y;
+            Command_Now.Reference_State.position_ref[2]     = final_goal.pose.position.z;
             Command_Now.Reference_State.yaw_ref             = desired_yaw;
             command_pub.publish(Command_Now);
 
             if(exec_num == 10){
-                cout << "Arrived the goal, waiting for a new goal" << endl;
-                cout << "drone_pos: " << _DroneState.position[0] << " [m] "<< _DroneState.position[1] << " [m] "<< _DroneState.position[2] << " [m] "<<endl;
-                cout << "goal_pos: " << goal.pose.position.x << " [m] "<< goal.pose.position.y << " [m] "<< goal.pose.position.z << " [m] "<<endl;
+                cout << "[mission] Goal arrived, waiting for a new goal" << endl;
                 exec_num=0;
             }
 
@@ -168,13 +185,10 @@ int main(int argc, char **argv){
 void planner(){
     if (control_yaw_flag){
         // 根据速度大小决定是否更新期望偏航角， 更新采用平滑滤波的方式，系数可调
-        // fastplanner航向策略仍然可以进一步优化
-        if( sqrt( planner_cmd.velocity_ref[1]* planner_cmd.velocity_ref[1]
-                 +  planner_cmd.velocity_ref[0]* planner_cmd.velocity_ref[0])  >  0.05  ){
-            float next_desired_yaw_vel      = atan2(  planner_cmd.velocity_ref[1] , 
-                                                 planner_cmd.velocity_ref[0]);
-            float next_desired_yaw_pos      = atan2(  planner_cmd.position_ref[1] - _DroneState.position[1],
-                                                 planner_cmd.position_ref[0] - _DroneState.position[0]);
+        // TODO: fastplanner航向策略仍然可以进一步优化
+        if(sqrt(planner_cmd.velocity_ref[1]* planner_cmd.velocity_ref[1] + planner_cmd.velocity_ref[0]* planner_cmd.velocity_ref[0]) > 0.05){
+            float next_desired_yaw_vel = atan2(planner_cmd.velocity_ref[1] ,planner_cmd.velocity_ref[0]);
+            float next_desired_yaw_pos = atan2(planner_cmd.position_ref[1] - _DroneState.position[1], planner_cmd.position_ref[0] - _DroneState.position[0]);
 
             if(next_desired_yaw_pos > 0.8){
                 next_desired_yaw_pos = 0.8;
@@ -182,7 +196,7 @@ void planner(){
                 next_desired_yaw_pos = -0.8;
             }
 
-            desired_yaw = (0.92*desired_yaw + 0.04*next_desired_yaw_pos + 0.04*next_desired_yaw_vel );
+            desired_yaw = (0.92 * desired_yaw + 0.04 * next_desired_yaw_pos + 0.04 * next_desired_yaw_vel);
         }
     }else{
         desired_yaw = 0.0;
@@ -190,12 +204,10 @@ void planner(){
 
     Command_Now.header.stamp = ros::Time::now();
     Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+    // TODO: Command_ID may exceed range of int
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State =  planner_cmd;
-    Command_Now.Reference_State.yaw_ref = desired_yaw;
-
+    Command_Now.Reference_State = planner_cmd;
+    Command_Now.Reference_State.yaw_ref = planner_cmd.yaw_ref;
     command_pub.publish(Command_Now);
-
-    cout << "[mission] prometheus::ControlCommand published!"
 }
