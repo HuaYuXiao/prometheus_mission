@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <Eigen/Eigen>
 #include <iostream>
+#include <iomanip>
 //topic 头文件
 #include <mission_utils.h>
 #include <geometry_msgs/Point.h>
@@ -13,6 +14,7 @@
 #include <prometheus_msgs/DetectionInfo.h>
 #include <prometheus_msgs/PositionReference.h>
 #include <prometheus_msgs/AttitudeReference.h>
+#include <quadrotor_msgs/PositionCommand.h>
 #include "message_utils.h"
 
 using namespace std;
@@ -41,7 +43,33 @@ void planner();
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回 调 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 void planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg){
     flag_get_cmd = 1;
+
     planner_cmd = *msg;
+}
+
+void quadrotor_planner_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
+    flag_get_cmd = 1;
+
+    planner_cmd.header.stamp = ros::Time::now();
+    planner_cmd.header.frame_id = "map";
+
+    planner_cmd.Move_mode = prometheus_msgs::PositionReference::TRAJECTORY;  //TRAJECTORY
+    planner_cmd.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME; //ENU_FRAME
+    planner_cmd.time_from_start = 0.0;
+
+    planner_cmd.position_ref[0] = msg->position.x;
+    planner_cmd.position_ref[1] = msg->position.y;
+    planner_cmd.position_ref[2] = msg->position.z;
+
+    planner_cmd.velocity_ref[0] = msg->velocity.x;
+    planner_cmd.velocity_ref[1] = msg->velocity.y;
+    planner_cmd.velocity_ref[2] = msg->velocity.z;
+
+    planner_cmd.acceleration_ref[0] = msg->acceleration.x;
+    planner_cmd.acceleration_ref[1] = msg->acceleration.y;
+    planner_cmd.acceleration_ref[2] = msg->acceleration.z;
+
+    planner_cmd.yaw_ref = msg->yaw;
 }
 
 void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg){
@@ -75,7 +103,9 @@ int main(int argc, char **argv){
     //【订阅】无人机当前状态
     ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
     //【订阅】来自planning的指令
-    ros::Subscriber planner_sub = nh.subscribe<prometheus_msgs::PositionReference>("/prometheus/position_cmd", 50, planner_cmd_cb);
+    ros::Subscriber planner_sub = nh.subscribe<prometheus_msgs::PositionReference>("/prometheus/position_cmd", 10, planner_cmd_cb);
+    //【订阅】来自EGO-Planner的指令
+    ros::Subscriber quadrotor_planner_sub = nh.subscribe<quadrotor_msgs::PositionCommand>("/prometheus/quadrotor_position_cmd", 10, quadrotor_planner_cmd_cb);
     //【订阅】目标点
     ros::Subscriber goal_sub = nh.subscribe<geometry_msgs::PoseStamped>("/prometheus/planning/goal", 1, goal_cb);
     
@@ -84,24 +114,23 @@ int main(int argc, char **argv){
     // 【发布】用于地面站显示的提示消息
     ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
 
-    while (ros::ok())
-    {
+    // 设置cout的精度为小数点后两位
+    std::cout << std::fixed << std::setprecision(2);
+
+    while (ros::ok()){
         static int exec_num=0;
         exec_num++;
 
         //回调
         ros::spinOnce();
 
-        if(flag_get_cmd == 0)
-        {
-            if(exec_num == 10)
-            {
+        if(flag_get_cmd == 0){
+            if(exec_num == 10){
                 cout << "[mission] Waiting for trajectory" << endl;
                 exec_num=0;
             }
             ros::Duration(0.5).sleep();
-        }else if (distance_to_goal < MIN_DIS)
-        {
+        }else if (distance_to_goal < MIN_DIS){
             // 抵达目标附近，则停止速度控制，改为位置控制
             Command_Now.header.stamp = ros::Time::now();
             Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
@@ -115,58 +144,47 @@ int main(int argc, char **argv){
             Command_Now.Reference_State.yaw_ref             = desired_yaw;
             command_pub.publish(Command_Now);
 
-            if(exec_num == 10)
-            {
-                cout << "Arrived the goal, waiting for a new goal... " << endl;
+            if(exec_num == 10){
+                cout << "Arrived the goal, waiting for a new goal" << endl;
                 cout << "drone_pos: " << _DroneState.position[0] << " [m] "<< _DroneState.position[1] << " [m] "<< _DroneState.position[2] << " [m] "<<endl;
                 cout << "goal_pos: " << goal.pose.position.x << " [m] "<< goal.pose.position.y << " [m] "<< goal.pose.position.z << " [m] "<<endl;
                 exec_num=0;
             }
 
             flag_get_goal = 0;
-            while (flag_get_goal == 0)
-            {
+            while (flag_get_goal == 0){
                 ros::spinOnce();
                 ros::Duration(0.5).sleep();
             }
-        }else
-        {
+        }else{
             planner();
             ros::Duration(0.05).sleep();
         }
     }
 
     return 0;
-
 }
 
-void planner()
-{
-    if (control_yaw_flag)
-    {
+void planner(){
+    if (control_yaw_flag){
         // 根据速度大小决定是否更新期望偏航角， 更新采用平滑滤波的方式，系数可调
         // fastplanner航向策略仍然可以进一步优化
         if( sqrt( planner_cmd.velocity_ref[1]* planner_cmd.velocity_ref[1]
-                 +  planner_cmd.velocity_ref[0]* planner_cmd.velocity_ref[0])  >  0.05  )
-        {
+                 +  planner_cmd.velocity_ref[0]* planner_cmd.velocity_ref[0])  >  0.05  ){
             float next_desired_yaw_vel      = atan2(  planner_cmd.velocity_ref[1] , 
                                                  planner_cmd.velocity_ref[0]);
             float next_desired_yaw_pos      = atan2(  planner_cmd.position_ref[1] - _DroneState.position[1],
                                                  planner_cmd.position_ref[0] - _DroneState.position[0]);
 
-            if(next_desired_yaw_pos > 0.8)
-            {
+            if(next_desired_yaw_pos > 0.8){
                 next_desired_yaw_pos = 0.8;
-            }
-            if(next_desired_yaw_pos < -0.8)
-            {
+            }if(next_desired_yaw_pos < -0.8){
                 next_desired_yaw_pos = -0.8;
             }
 
             desired_yaw = (0.92*desired_yaw + 0.04*next_desired_yaw_pos + 0.04*next_desired_yaw_vel );
         }
-    }else
-    {
+    }else{
         desired_yaw = 0.0;
     }
 
@@ -178,4 +196,6 @@ void planner()
     Command_Now.Reference_State.yaw_ref = desired_yaw;
 
     command_pub.publish(Command_Now);
+
+    cout << "[mission] prometheus::ControlCommand published!"
 }
