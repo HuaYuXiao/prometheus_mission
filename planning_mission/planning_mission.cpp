@@ -124,9 +124,6 @@ int main(int argc, char **argv){
     cout << "[mission] prometheus_mission initialized!" << endl;
 
     while (ros::ok()){
-        static int exec_num=0;
-        exec_num++;
-
         //回调
         ros::spinOnce();
 
@@ -143,12 +140,10 @@ int main(int argc, char **argv){
                     Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
                     Command_Now.Reference_State.position_ref[2] = final_goal.pose.position.z;
                     Command_Now.Reference_State.yaw_ref = desired_yaw;
+
                     command_pub.publish(Command_Now);
 
-                    if (exec_num == 10) {
                         cout << "[mission] Goal arrived, waiting for a new goal" << endl;
-                        exec_num = 0;
-                    }
 
                     flag_get_goal = true;
                     while (!flag_get_goal) {
