@@ -34,8 +34,8 @@ prometheus_msgs::PositionReference planner_cmd;          // fast planner cmd
 
 bool sim_mode;
 bool control_yaw_flag;
-int flag_get_cmd = 0;
-int flag_get_goal = 0;
+bool flag_get_cmd = false;
+bool flag_get_goal = false;
 float desired_yaw = 0;  //[rad]
 float distance_to_goal = 0;
 double last_angle;
@@ -45,13 +45,13 @@ void planner();
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回 调 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 void planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg){
-    flag_get_cmd = 1;
+    flag_get_cmd = true;
 
     planner_cmd = *msg;
 }
 
 void quadrotor_planner_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
-    flag_get_cmd = 1;
+    flag_get_cmd = true;
 
     planner_cmd.header.stamp = ros::Time::now();
     planner_cmd.header.frame_id = "map";
@@ -81,23 +81,10 @@ void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg){
     distance_to_goal = sqrt(pow(_DroneState.position[0] - final_goal.pose.position.x, 2) +
                             pow(_DroneState.position[1] - final_goal.pose.position.y, 2) +
                             pow(_DroneState.position[2] - final_goal.pose.position.z, 2));
-
-    tf2::Quaternion final_goal_q(final_goal.pose.orientation.x,
-                                 final_goal.pose.orientation.y,
-                                 final_goal.pose.orientation.z,
-                                 final_goal.pose.orientation.w);
-
-    tf2::Quaternion drone_state_q(_DroneState.attitude_q.x,
-                                  _DroneState.attitude_q.y,
-                                  _DroneState.attitude_q.z,
-                                  _DroneState.attitude_q.w);
-
-    double dot_product = final_goal_q.dot(drone_state_q);
-    last_angle = acos(dot_product);
 }
 
 void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
-    flag_get_goal = 1;
+    flag_get_goal = true;
 
     final_goal = *msg;
     final_goal.pose.position.z = _DroneState.position[2];
@@ -143,39 +130,35 @@ int main(int argc, char **argv){
         //回调
         ros::spinOnce();
 
-        if(flag_get_cmd == 0){
-            if(exec_num == 10){
-                cout << "[mission] Waiting for trajectory" << endl;
-                exec_num=0;
-            }
-            ros::Duration(0.5).sleep();
-        }else if (distance_to_goal < MIN_DIS){
-            // 抵达目标附近，则停止速度控制，改为位置控制
-            Command_Now.header.stamp = ros::Time::now();
-            Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
-            Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
-            Command_Now.source = NODE_NAME;
-            Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-            Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
-            Command_Now.Reference_State.position_ref[0]     = final_goal.pose.position.x;
-            Command_Now.Reference_State.position_ref[1]     = final_goal.pose.position.y;
-            Command_Now.Reference_State.position_ref[2]     = final_goal.pose.position.z;
-            Command_Now.Reference_State.yaw_ref             = desired_yaw;
-            command_pub.publish(Command_Now);
+        if(flag_get_cmd){
+                if (distance_to_goal < MIN_DIS){
+                    // 抵达目标附近，则停止速度控制，改为位置控制
+                    Command_Now.header.stamp = ros::Time::now();
+                    Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
+                    Command_Now.Command_ID = Command_Now.Command_ID + 1;
+                    Command_Now.source = NODE_NAME;
+                    Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
+                    Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
+                    Command_Now.Reference_State.position_ref[0] = final_goal.pose.position.x;
+                    Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
+                    Command_Now.Reference_State.position_ref[2] = final_goal.pose.position.z;
+                    Command_Now.Reference_State.yaw_ref = desired_yaw;
+                    command_pub.publish(Command_Now);
 
-            if(exec_num == 10){
-                cout << "[mission] Goal arrived, waiting for a new goal" << endl;
-                exec_num=0;
-            }
+                    if (exec_num == 10) {
+                        cout << "[mission] Goal arrived, waiting for a new goal" << endl;
+                        exec_num = 0;
+                    }
 
-            flag_get_goal = 0;
-            while (flag_get_goal == 0){
-                ros::spinOnce();
-                ros::Duration(0.5).sleep();
-            }
-        }else{
-            planner();
-            ros::Duration(0.05).sleep();
+                    flag_get_goal = true;
+                    while (!flag_get_goal) {
+                        ros::spinOnce();
+                        ros::Duration(0.5).sleep();
+                    }
+                }else{
+                    planner();
+                    ros::Duration(0.05).sleep();
+                }
         }
     }
 
