@@ -33,7 +33,7 @@ ros::Publisher command_pub;
 geometry_msgs::PoseStamped final_goal;                              // goal
 prometheus_msgs::PositionReference planner_cmd;          // fast planner cmd
 
-bool control_yaw_flag;
+bool control_yaw_flag = false;
 bool flag_get_cmd = false;
 bool flag_get_goal = false;
 float desired_yaw = 0.0;  //[rad]
@@ -74,14 +74,6 @@ void quadrotor_planner_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& m
 
 void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg){
     _DroneState = *msg;
-
-    if(flag_get_goal){
-        distance_to_goal = sqrt(pow(_DroneState.position[0] - final_goal.pose.position.x, 2) +
-                                pow(_DroneState.position[1] - final_goal.pose.position.y, 2) +
-                                pow(_DroneState.position[2] - final_goal.pose.position.z, 2));
-
-        cout << "[mission] Distance to goal: " << distance_to_goal << endl;
-    }
 }
 
 void goal_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
@@ -127,11 +119,57 @@ int main(int argc, char **argv){
         //回调
         ros::spinOnce();
 
-        if(flag_get_cmd){
-                if (distance_to_goal < MIN_DIS){
-                    // 抵达目标附近，则停止速度控制，改为位置控制
+        if(flag_get_goal){
+            distance_to_goal = sqrt(pow(_DroneState.position[0] - final_goal.pose.position.x, 2) +
+                                    pow(_DroneState.position[1] - final_goal.pose.position.y, 2) +
+                                    pow(_DroneState.position[2] - final_goal.pose.position.z, 2));
+
+            cout << "[mission] Distance to [" << final_goal.pose.position.x << " " << final_goal.pose.position.y << " " << final_goal.pose.position.z << "] is " << distance_to_goal << endl;
+
+            // priority of mission is higher than planner
+            if (distance_to_goal <= MIN_DIS){
+                // 抵达目标附近，则停止速度控制，改为位置控制
+                planner_cmd.header.stamp = ros::Time::now();
+                Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
+                Command_Now.Command_ID = Command_Now.Command_ID + 1;
+                Command_Now.source = NODE_NAME;
+                Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
+                Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
+
+                Command_Now.Reference_State.position_ref[0] = final_goal.pose.position.x;
+                Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
+                Command_Now.Reference_State.position_ref[2] = final_goal.pose.position.z;
+
+                Command_Now.Reference_State.velocity_ref[0] = 0.0;
+                Command_Now.Reference_State.velocity_ref[1] = 0.0;
+                Command_Now.Reference_State.velocity_ref[2] = 0.0;
+
+                Command_Now.Reference_State.acceleration_ref[0] = 0.0;
+                Command_Now.Reference_State.acceleration_ref[1] = 0.0;
+                Command_Now.Reference_State.acceleration_ref[2] = 0.0;
+
+                Command_Now.Reference_State.yaw_ref = last_angle;
+
+                command_pub.publish(Command_Now);
+
+                cout << "[mission] close to goal, change to POS control" << endl;
+
+                flag_get_goal = false;
+
+                ros::Duration(0.02).sleep();
+            }
+            else{
+                if(flag_get_cmd){
+                    planner();
+
+                    ros::Duration(0.02).sleep();
+                }
+                else{
+                    // TODO: two types of situation:
+                    //  1. planner failed, directly publish move cmd
+                    //  2. planner not initialized yet
                     planner_cmd.header.stamp = ros::Time::now();
-                    Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
+                    Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
                     Command_Now.Command_ID = Command_Now.Command_ID + 1;
                     Command_Now.source = NODE_NAME;
                     Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
@@ -143,17 +181,14 @@ int main(int argc, char **argv){
 
                     command_pub.publish(Command_Now);
 
-                        cout << "[mission] Goal arrived" << endl;
+                    cout << "[mission] planner failed, directly publish move cmd" << endl;
 
-                    flag_get_goal = true;
-                    while (!flag_get_goal) {
-                        ros::spinOnce();
-                        ros::Duration(0.02).sleep();
-                    }
-                }else{
-                    planner();
                     ros::Duration(0.02).sleep();
                 }
+            }
+        }
+        else{
+            ros::Duration(0.02).sleep();
         }
     }
 
