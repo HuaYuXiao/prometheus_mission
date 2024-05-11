@@ -5,13 +5,20 @@
 ![Static Badge](https://img.shields.io/badge/Python-3.8.10-3776AB?logo=python)
 ![Static Badge](https://img.shields.io/badge/Ubuntu-20.04.6-E95420?logo=ubuntu)
 
+The prometheus_mission package, modified from [prometheus_mission](https://github.com/amov-lab/Prometheus/tree/v1.1/Modules/mission)
 
-## Release NOte
+## Note
 
+- priority of mission is higher than planner, which means that, if drone is close to goal, cmd from planner will not be executed
+
+
+## Release Note
+
+- v2.0.0: priority of mission exceed planner
 - v1.2.1: support `last_angle` from `SetGoal`
 
 
-## Compile
+## Compilation
 
 ```bash
 catkin_make install --source Modules/prometheus_mission --build build/prometheus_mission
