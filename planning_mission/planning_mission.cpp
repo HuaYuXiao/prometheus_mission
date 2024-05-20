@@ -107,8 +107,6 @@ int main(int argc, char **argv){
     
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
     command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
-    // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
 
     // 设置cout的精度为小数点后两位
     std::cout << std::fixed << std::setprecision(2);
@@ -168,20 +166,20 @@ int main(int argc, char **argv){
                     // TODO: two types of situation:
                     //  1. planner failed, directly publish move cmd
                     //  2. planner not initialized yet
-                    planner_cmd.header.stamp = ros::Time::now();
-                    Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
-                    Command_Now.Command_ID = Command_Now.Command_ID + 1;
-                    Command_Now.source = NODE_NAME;
-                    Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
-                    Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
-                    Command_Now.Reference_State.position_ref[0] = final_goal.pose.position.x;
-                    Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
-                    Command_Now.Reference_State.position_ref[2] = final_goal.pose.position.z;
-                    Command_Now.Reference_State.yaw_ref = last_angle;
+//                    planner_cmd.header.stamp = ros::Time::now();
+//                    Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+//                    Command_Now.Command_ID = Command_Now.Command_ID + 1;
+//                    Command_Now.source = NODE_NAME;
+//                    Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
+//                    Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
+//                    Command_Now.Reference_State.position_ref[0] = final_goal.pose.position.x;
+//                    Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
+//                    Command_Now.Reference_State.position_ref[2] = final_goal.pose.position.z;
+//                    Command_Now.Reference_State.yaw_ref = last_angle;
+//
+//                    command_pub.publish(Command_Now);
 
-                    command_pub.publish(Command_Now);
-
-                    cout << "[mission] planner failed, directly publish move cmd" << endl;
+                    cout << "[mission] planner not initialized yet" << endl;
 
                     ros::Duration(0.02).sleep();
                 }
@@ -211,9 +209,6 @@ void planner(){
 
             desired_yaw = (0.92 * desired_yaw + 0.04 * next_desired_yaw_pos + 0.04 * next_desired_yaw_vel);
         }
-    }else{
-        // TODO: change to current angle
-        desired_yaw = 0.0;
     }
 
     Command_Now.header.stamp = ros::Time::now();
