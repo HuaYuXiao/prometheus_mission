@@ -4,7 +4,6 @@ The prometheus_mission package, modified from [mission](https://github.com/amov-
 
 ![Static Badge](https://img.shields.io/badge/ROS-noetic-22314E?logo=ros)
 ![Static Badge](https://img.shields.io/badge/C%2B%2B-14-00599C?logo=cplusplus)
-![Static Badge](https://img.shields.io/badge/Python-3.8.10-3776AB?logo=python)
 ![Static Badge](https://img.shields.io/badge/Ubuntu-20.04.6-E95420?logo=ubuntu)
 
 The prometheus_mission package, modified from [prometheus_mission](https://github.com/amov-lab/Prometheus/tree/v1.1/Modules/mission)
@@ -16,11 +15,13 @@ The prometheus_mission package, modified from [prometheus_mission](https://githu
 
 ## Release Note
 
+- v2.0.2: replace `MIN_DIS` with `control_yaw_flag`
+- v2.0.1: skip if planner not initialized
 - v2.0.0: priority of mission exceed planner
 - v1.2.1: support `last_angle` from `SetGoal`
 
 
-## Compilation
+## Installation
 
 ```bash
 catkin_make install --source Modules/prometheus_mission --build build/prometheus_mission
