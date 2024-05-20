@@ -14,6 +14,7 @@ The prometheus_mission package, modified from [prometheus_mission](https://githu
 
 ## Release Note
 
+- v2.0.1: skip if planner not initialized
 - v2.0.0: priority of mission exceed planner
 - v1.2.1: support `last_angle` from `SetGoal`
 
