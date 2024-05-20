@@ -17,12 +17,10 @@
 #include <prometheus_msgs/PositionReference.h>
 #include <prometheus_msgs/AttitudeReference.h>
 #include <quadrotor_msgs/PositionCommand.h>
-#include "message_utils.h"
 #include <cmath>
 
 using namespace std;
 
-#define MIN_DIS 0.2
 # define NODE_NAME "planning_mission"
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -33,6 +31,7 @@ ros::Publisher command_pub;
 geometry_msgs::PoseStamped final_goal;                              // goal
 prometheus_msgs::PositionReference planner_cmd;          // fast planner cmd
 
+float thresh_no_replan_ = 0.2;
 bool control_yaw_flag = false;
 bool flag_get_cmd = false;
 bool flag_get_goal = false;
@@ -94,7 +93,8 @@ int main(int argc, char **argv){
     ros::init(argc, argv, "planning_mission");
     ros::NodeHandle nh("~");
 
-    nh.param<bool>("planning_mission/control_yaw_flag", control_yaw_flag, true);
+    nh.param<float>("planning_mission/thresh_no_replan", thresh_no_replan_, 0.2);
+    nh.param<bool>("planning_mission/control_yaw_flag", control_yaw_flag, false);
     
     //【订阅】无人机当前状态
     ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
@@ -125,7 +125,7 @@ int main(int argc, char **argv){
             cout << "[mission] Distance to [" << final_goal.pose.position.x << " " << final_goal.pose.position.y << " " << final_goal.pose.position.z << "] is " << distance_to_goal << endl;
 
             // priority of mission is higher than planner
-            if (distance_to_goal <= MIN_DIS){
+            if (distance_to_goal <= control_yaw_flag){
                 // 抵达目标附近，则停止速度控制，改为位置控制
                 planner_cmd.header.stamp = ros::Time::now();
                 Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
