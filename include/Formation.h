@@ -20,8 +20,8 @@
 #include <mavros_msgs/CommandTOL.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/Formation.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/Formation.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Int8.h>
 #include <Eigen/Eigen>
@@ -102,10 +102,10 @@ class formation
         void get_uav_cmd(Eigen::Vector3d offset_pose, mavros_msgs::PositionTarget& desired_pose);
 
         //集群控制命令回调函数
-        void ControlCallBack(const prometheus_msgs::ControlCommandConstPtr& control_msgs);
+        void ControlCallBack(const easondrone_msgs::ControlCommandConstPtr& control_msgs);
 
         //队形变换命令回调函数
-        void FormationChangeCallBack(const prometheus_msgs::FormationConstPtr& change_msgs);
+        void FormationChangeCallBack(const easondrone_msgs::FormationConstPtr& change_msgs);
 
         //1号机状态数据回调函数
         void Uav1StateCallBack(const mavros_msgs::StateConstPtr &state_msgs);
@@ -371,10 +371,10 @@ class formation
         int diamond_intervals;
 
         //集群队形
-        prometheus_msgs::Formation formation_data;
+        easondrone_msgs::Formation formation_data;
 
         //集群控制
-        prometheus_msgs::ControlCommand control_data;
+        easondrone_msgs::ControlCommand control_data;
 
         //集群模式
         int formation_mode;

@@ -3,21 +3,20 @@
 #include <Eigen/Eigen>
 #include <iostream>
 #include <mission_utils.h>
-
 //topic 头文件
 #include <geometry_msgs/Point.h>
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/DetectionInfo.h>
-#include <prometheus_msgs/PositionReference.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/DetectionInfo.h>
+#include <easondrone_msgs/PositionReference.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/ActuatorControl.h>
 #include <sensor_msgs/Imu.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/AttitudeReference.h>
-#include <prometheus_msgs/DroneState.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/AttitudeReference.h>
+#include <easondrone_msgs/DroneState.h>
 #include <nav_msgs/Path.h>
 #include <std_msgs/Int8.h>
 #include "message_utils.h"
@@ -25,6 +24,7 @@
 using namespace std;
 
 # define NODE_NAME "turtlebot_formation"
+
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 nav_msgs::Odometry tb3_1_odom;
 nav_msgs::Odometry tb3_2_odom;
@@ -36,10 +36,10 @@ geometry_msgs::Twist tb3_2_cmd;
 geometry_msgs::Twist tb3_3_cmd;
 geometry_msgs::Twist tb3_4_cmd;
 
-prometheus_msgs::DroneState uav1_state;
-prometheus_msgs::DroneState uav2_state;
-prometheus_msgs::DroneState uav3_state;
-prometheus_msgs::DroneState uav4_state;
+easondrone_msgs::DroneState uav1_state;
+easondrone_msgs::DroneState uav2_state;
+easondrone_msgs::DroneState uav3_state;
+easondrone_msgs::DroneState uav4_state;
 
 void tb3_1_odom_cb(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -61,19 +61,19 @@ void tb3_4_odom_cb(const nav_msgs::Odometry::ConstPtr& msg)
     tb3_4_odom = *msg;
 }
 
-void uav1_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void uav1_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     uav1_state = *msg;
 }
-void uav2_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void uav2_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     uav2_state = *msg;
 }
-void uav3_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void uav3_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     uav3_state = *msg;
 }
-void uav4_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void uav4_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     uav4_state = *msg;
 }
@@ -88,13 +88,13 @@ int main(int argc, char **argv)
     ros::Subscriber tb3_3_odom_sub = nh.subscribe<nav_msgs::Odometry>("/tb3_3/odom", 10, tb3_3_odom_cb);
     ros::Subscriber tb3_4_odom_sub = nh.subscribe<nav_msgs::Odometry>("/tb3_4/odom", 10, tb3_4_odom_cb);
 
-    ros::Subscriber uav1_sub = nh.subscribe<prometheus_msgs::DroneState>("/uav1/prometheus/drone_state", 1, uav1_cb);
-    ros::Subscriber uav2_sub = nh.subscribe<prometheus_msgs::DroneState>("/uav2/prometheus/drone_state", 1, uav2_cb);
-    ros::Subscriber uav3_sub = nh.subscribe<prometheus_msgs::DroneState>("/uav3/prometheus/drone_state", 1, uav3_cb);
-    ros::Subscriber uav4_sub = nh.subscribe<prometheus_msgs::DroneState>("/uav4/prometheus/drone_state", 1, uav4_cb);
+    ros::Subscriber uav1_sub = nh.subscribe<easondrone_msgs::DroneState>("/uav1/easondrone/drone_state", 1, uav1_cb);
+    ros::Subscriber uav2_sub = nh.subscribe<easondrone_msgs::DroneState>("/uav2/easondrone/drone_state", 1, uav2_cb);
+    ros::Subscriber uav3_sub = nh.subscribe<easondrone_msgs::DroneState>("/uav3/easondrone/drone_state", 1, uav3_cb);
+    ros::Subscriber uav4_sub = nh.subscribe<easondrone_msgs::DroneState>("/uav4/easondrone/drone_state", 1, uav4_cb);
 
     // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
 
     ros::Publisher tb3_1_cmd_pub = nh.advertise<geometry_msgs::Twist>("/tb3_1/cmd_vel", 10);
     ros::Publisher tb3_2_cmd_pub = nh.advertise<geometry_msgs::Twist>("/tb3_2/cmd_vel", 10);

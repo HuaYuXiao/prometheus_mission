@@ -5,9 +5,7 @@
 #include <ros/ros.h>
 #include <iostream>
 #include <tf/transform_datatypes.h>
-
-#include <prometheus_msgs/ArucoInfo.h>
-
+#include <easondrone_msgs/ArucoInfo.h>
 #include "mission_utils.h"
 #include "message_utils.h"
 
@@ -23,20 +21,20 @@ float camera_offset[3];     //相机安装偏差
 
 string message;
 
-prometheus_msgs::DroneState _DroneState;    // 无人机状态
+easondrone_msgs::DroneState _DroneState;    // 无人机状态
 Eigen::Vector3f mav_pos;
 Eigen::Matrix3f R_Body_to_ENU;              // 无人机机体系至惯性系转换矩阵
 Eigen::Vector3f return_point;
 
 nav_msgs::Odometry GroundTruth;             // 降落板真实位置（仿真中由Gazebo插件提供）
-prometheus_msgs::ArucoInfo marker_info;               // 检测结果
+easondrone_msgs::ArucoInfo marker_info;               // 检测结果
 Eigen::Vector3f marker_body,marker_body_enu;
 Eigen::Vector3f marker_enu;
 bool is_detected;
 int num_detected, num_lost;
 float distance_to_pad;
 
-prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
+easondrone_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
 
 Eigen::Vector3f search_point;
 float dis_to_search_point;
@@ -66,7 +64,7 @@ void search_cb(const ros::TimerEvent& e);
 void control_cb(const ros::TimerEvent& e);
 void printf_cb(const ros::TimerEvent& e);
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回调函数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void aruco_cb(const prometheus_msgs::ArucoInfo::ConstPtr &msg)
+void aruco_cb(const easondrone_msgs::ArucoInfo::ConstPtr &msg)
 {
     marker_info = *msg;
 
@@ -109,7 +107,7 @@ void aruco_cb(const prometheus_msgs::ArucoInfo::ConstPtr &msg)
     marker_enu[2] = _DroneState.position[2] + marker_body_enu[2];
 }
 
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
 

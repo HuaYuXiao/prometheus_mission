@@ -1,15 +1,17 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>prometheus_mission</name>
+  <name>easondrone_mission</name>
   <version>2.0.2</version>
   <description>
-    The prometheus_mission package
+    The easondrone_mission package
   </description>
-  <maintainer email="hyx020222@gmail.com">Eason Hua</maintainer>
+
+  <maintainer email="12010508@mail.sustech.edu.cn">Eason Hua</maintainer>
   <author email="fatmoonqyp@126.com">Yuhua Qi</author>
+
   <license>Apache</license>
-  <url type="website">http://www.amovlab.com/</url>
-  <url type="repository">https://github.com/HuaYuXiao/prometheus_mission.git</url>
+
+  <url type="repository">https://github.com/HuaYuXiao/EasonDrone_Mission.git</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 

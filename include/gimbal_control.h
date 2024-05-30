@@ -7,10 +7,8 @@
 #include <math.h>
 #include <mavros_msgs/MountControl.h>
 #include <geometry_msgs/Quaternion.h>
-#include <prometheus_msgs/ArucoInfo.h>
+#include <easondrone_msgs/ArucoInfo.h>
 #include "mission_utils.h"
-
-
 
 using namespace std;
 

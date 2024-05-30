@@ -6,7 +6,7 @@
 #include "mission_utils.h"
 #include "gimbal_control.h"
 #include "message_utils.h"
-#include <prometheus_msgs/PositionReference.h>
+#include <easondrone_msgs/PositionReference.h>
 
 using namespace std;
 using namespace Eigen;
@@ -26,10 +26,10 @@ float sight_angle[2];
 float start_point[3];    // 起始降落位置
 Eigen::Vector3d roi_point;
 //---------------------------------------Drone---------------------------------------------
-prometheus_msgs::DroneState _DroneState;    // 无人机状态
+easondrone_msgs::DroneState _DroneState;    // 无人机状态
 
 
-prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
+easondrone_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
 
 Eigen::Vector3d mav_pos_;
 
@@ -38,7 +38,7 @@ float circle_radius = 2.0;
 float linear_vel = 1.0;
 float direction = 1.0;
 
-prometheus_msgs::PositionReference Circle_trajectory_generation(float time_from_start);
+easondrone_msgs::PositionReference Circle_trajectory_generation(float time_from_start);
 void printf_result();
 
 void groundtruth_cb(const nav_msgs::Odometry::ConstPtr& msg)
@@ -52,7 +52,7 @@ void groundtruth_cb(const nav_msgs::Odometry::ConstPtr& msg)
     roi_point[1] = GroundTruth.pose.pose.position.y;
     roi_point[2] = GroundTruth.pose.pose.position.z;
 }
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
    
@@ -91,12 +91,12 @@ int main(int argc, char **argv)
     ros::Subscriber groundtruth_sub = nh.subscribe<nav_msgs::Odometry>("/ground_truth/marker", 10, groundtruth_cb);
 
     //【订阅】无人机状态
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state", 10, drone_state_cb);
 
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
 
     //【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    ros::Publisher command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    ros::Publisher command_pub = nh.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 
     Command_Now.Command_ID = 1;
     Command_Now.source = NODE_NAME;
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
         while(ros::ok() && _DroneState.mode != "OFFBOARD")
         {
             Command_Now.header.stamp = ros::Time::now();
-            Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
+            Command_Now.Mode  = easondrone_msgs::ControlCommand::Idle;
             Command_Now.Command_ID = Command_Now.Command_ID + 1;
             Command_Now.source = NODE_NAME;
             Command_Now.Reference_State.yaw_ref = 999;
@@ -129,16 +129,16 @@ int main(int argc, char **argv)
 
 
     // 起飞
-    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, "Takeoff to predefined position.");
+    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, "Takeoff to predefined position.");
 
     while( _DroneState.position[2] < 0.5)
     {      
         Command_Now.header.stamp                        = ros::Time::now();
-        Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+        Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
         Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
         Command_Now.source                              = NODE_NAME;
-        Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-        Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+        Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+        Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
         Command_Now.Reference_State.position_ref[0]     = start_point[0];
         Command_Now.Reference_State.position_ref[1]     = start_point[1];
         Command_Now.Reference_State.position_ref[2]     = start_point[2];
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
         while(time_trajectory < trajectory_total_time)
         {
             Command_Now.header.stamp = ros::Time::now();
-            Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
+            Command_Now.Mode = easondrone_msgs::ControlCommand::Move;
             Command_Now.Command_ID = Command_Now.Command_ID + 1;
             Command_Now.source = NODE_NAME;
 
@@ -215,9 +215,9 @@ void printf_result()
     cout.setf(ios::showpos);
 }
 
-prometheus_msgs::PositionReference Circle_trajectory_generation(float time_from_start)
+easondrone_msgs::PositionReference Circle_trajectory_generation(float time_from_start)
 {
-    prometheus_msgs::PositionReference Circle_trajectory;
+    easondrone_msgs::PositionReference Circle_trajectory;
     float omega;
     if( circle_radius != 0)
     {
@@ -237,7 +237,7 @@ prometheus_msgs::PositionReference Circle_trajectory_generation(float time_from_
 
     Circle_trajectory.time_from_start = time_from_start;
 
-    Circle_trajectory.Move_mode = prometheus_msgs::PositionReference::TRAJECTORY;
+    Circle_trajectory.Move_mode = easondrone_msgs::PositionReference::TRAJECTORY;
 
     Circle_trajectory.position_ref[0] = circle_radius * cos_angle + circle_center[0];
     Circle_trajectory.position_ref[1] = circle_radius * sin_angle + circle_center[1];

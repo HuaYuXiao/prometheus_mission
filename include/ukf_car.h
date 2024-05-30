@@ -15,7 +15,7 @@
 
 #include <Eigen/Eigen>
 #include <math.h>
-#include <prometheus_msgs/DetectionInfo.h>
+#include <easondrone_msgs/DetectionInfo.h>
 
 using namespace std;
 using namespace Eigen;
@@ -134,10 +134,10 @@ class UKF_CAR
         void Prediction(double delta_t);
 
         // Update Vision Measurement
-        void UpdateVision(const prometheus_msgs::DetectionInfo& mesurement);
+        void UpdateVision(const easondrone_msgs::DetectionInfo& mesurement);
 
         // UKF main function
-        VectorXd Run(const prometheus_msgs::DetectionInfo& mesurement, double delta);
+        VectorXd Run(const easondrone_msgs::DetectionInfo& mesurement, double delta);
 
     private:
 
@@ -145,7 +145,7 @@ class UKF_CAR
 
 };
 
-VectorXd UKF_CAR::Run(const prometheus_msgs::DetectionInfo& mesurement, double delta_t)
+VectorXd UKF_CAR::Run(const easondrone_msgs::DetectionInfo& mesurement, double delta_t)
 {
     if(!is_initialized)
     {
@@ -270,7 +270,7 @@ void UKF_CAR::Prediction(double delta_t)
     cout<<"P_pre="<<endl<<P_pre<<endl<<endl;
 }
 
-void UKF_CAR::UpdateVision(const prometheus_msgs::DetectionInfo& mesurement)
+void UKF_CAR::UpdateVision(const easondrone_msgs::DetectionInfo& mesurement)
 {  
     // 【UKF第三步】 测量更新
     z_[0] = mesurement.position[0];

@@ -14,14 +14,13 @@
 
 #include <Eigen/Eigen>
 #include <math.h>
-
 //topic 头文件
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/DetectionInfo.h>
-#include <prometheus_msgs/MultiDetectionInfo.h>
-#include <prometheus_msgs/AttitudeReference.h>
-#include <prometheus_msgs/Message.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/DetectionInfo.h>
+#include <easondrone_msgs/MultiDetectionInfo.h>
+#include <easondrone_msgs/AttitudeReference.h>
+#include <easondrone_msgs/Message.h>
 #include <mavros_msgs/ActuatorControl.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -45,7 +44,6 @@ using namespace std;
 #define DOWN_CAMERA_OFFSET_Y 0.0
 #define DOWN_CAMERA_OFFSET_Z -0.1
 
-
 // 定义视觉检测结构体
 // 
 struct Detection_result
@@ -54,7 +52,7 @@ struct Detection_result
     // 视觉检测原始信息，返回的结果为相机坐标系
     // 方向定义： 识别算法发布的目标位置位于相机坐标系（从相机往前看，物体在相机右方x为正，下方y为正，前方z为正）
     // 标志位：   detected 用作标志位 ture代表识别到目标 false代表丢失目标
-    prometheus_msgs::DetectionInfo Detection_info;      
+    easondrone_msgs::DetectionInfo Detection_info;      
     // 目标在相机系位置
     Eigen::Vector3f pos_camera_frame;  
     // 目标在机体系位置
@@ -72,7 +70,6 @@ struct Detection_result
     int num_lost = 0;          //视觉丢失计数器
     int num_regain = 0;     
 };
-
 
 //打印视觉检测消息
 void printf_detection_result(const struct Detection_result& det_info)

@@ -14,9 +14,9 @@
 void formation::init()
 {
     //控制命令数据订阅者
-    cmd_sub = n.subscribe("/prometheus/control_command", 10, &formation::ControlCallBack, this);
+    cmd_sub = n.subscribe("/easondrone/control_command", 10, &formation::ControlCallBack, this);
     //集群队形数据订阅者
-    formation_type_sub = n.subscribe("/prometheus/formation/change", 10, &formation::FormationChangeCallBack, this);
+    formation_type_sub = n.subscribe("/easondrone/formation/change", 10, &formation::FormationChangeCallBack, this);
 
     //集群五台飞机位置控制数据发布者
     uav1_local_pub = n.advertise<mavros_msgs::PositionTarget>("/uav1/mavros/setpoint_raw/local", 10);
@@ -59,7 +59,7 @@ void formation::init()
     check_param();
 
     //初始队形设置为一字形
-    formation_data.type = prometheus_msgs::Formation::HORIZONTAL;
+    formation_data.type = easondrone_msgs::Formation::HORIZONTAL;
 
     //设置程序初始时间
     begin_time = ros::Time::now();
@@ -344,22 +344,22 @@ void formation::control()
             switch(formation_data.type)
             {
                 //设置为一字队形
-                case prometheus_msgs::Formation::HORIZONTAL:
+                case easondrone_msgs::Formation::HORIZONTAL:
                     set_horizontal();
                     break;
         
                 //设置为三角队形
-                case prometheus_msgs::Formation::TRIANGEL:
+                case easondrone_msgs::Formation::TRIANGEL:
                     set_triangle();
                     break;
 
                 //设置为菱形队形过渡队形
-                case prometheus_msgs::Formation::DIAMOND_STAGE_1:
+                case easondrone_msgs::Formation::DIAMOND_STAGE_1:
                     set_diamond_stage1();
                     break;
 
                 //设置为菱形队形
-                case prometheus_msgs::Formation::DIAMOND:
+                case easondrone_msgs::Formation::DIAMOND:
                     set_diamond();
                     break;
             }
@@ -396,17 +396,17 @@ void formation::control()
                 switch(formation_data.type)
                 {
                     //设置为一字队形
-                    case prometheus_msgs::Formation::HORIZONTAL:
+                    case easondrone_msgs::Formation::HORIZONTAL:
                         set_horizontal();
                         break;
         
                     //设置为三角队形
-                    case prometheus_msgs::Formation::TRIANGEL:
+                    case easondrone_msgs::Formation::TRIANGEL:
                         set_triangle();
                         break;
 
                     //设置为菱形队形过渡队形
-                    case prometheus_msgs::Formation::DIAMOND_STAGE_1:
+                    case easondrone_msgs::Formation::DIAMOND_STAGE_1:
                         set_diamond_stage1();
                         break;
                 }
@@ -429,13 +429,13 @@ void formation::control()
 }
 
 //获取无人机控制指令
-void formation::ControlCallBack(const prometheus_msgs::ControlCommandConstPtr& control_msgs)
+void formation::ControlCallBack(const easondrone_msgs::ControlCommandConstPtr& control_msgs)
 {
     control_data = *control_msgs;
 }
 
 //获取无人机集群队形指令
-void formation::FormationChangeCallBack(const prometheus_msgs::FormationConstPtr& change_msgs)
+void formation::FormationChangeCallBack(const easondrone_msgs::FormationConstPtr& change_msgs)
 {
     formation_data.type = change_msgs->type;
 }

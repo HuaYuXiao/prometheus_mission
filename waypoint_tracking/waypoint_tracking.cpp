@@ -13,21 +13,23 @@
 #include "mission_utils.h"
 #include "message_utils.h"
 #include <std_msgs/Bool.h>
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/PositionReference.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/PositionReference.h>
+
 using namespace std;
  
 # define TIME_OUT 20.0
 # define THRES_DISTANCE 0.15
 # define NODE_NAME "waypoint_tracking"
+
 bool sim_mode;
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-prometheus_msgs::ControlCommand Command_Now;
-prometheus_msgs::DroneState _DroneState;                          //无人机状态量
+easondrone_msgs::ControlCommand Command_Now;
+easondrone_msgs::DroneState _DroneState;                          //无人机状态量
 Eigen::Vector3f drone_pos;
 
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
 
@@ -45,13 +47,13 @@ int main(int argc, char **argv)
 
     //【订阅】无人机当前状态
     // 本话题来自根据需求自定px4_pos_estimator.cpp
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state", 10, drone_state_cb);
 
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    ros::Publisher move_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    ros::Publisher move_pub = nh.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 
     // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
 
     ros::Time time_begin;
     float time_sec;
@@ -89,11 +91,11 @@ int main(int argc, char **argv)
     cout << "point4: " << "[ "<<point4[0]<< "," <<point4[1]<<","<<point4[2]<<" ]"<<endl;
     cout << "point5: " << "[ "<<point5[0]<< "," <<point5[1]<<","<<point5[2]<<" ]"<<endl;
 
-    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Idle;
+    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Idle;
     Command_Now.Command_ID                          = 0;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0]     = 0;
     Command_Now.Reference_State.position_ref[1]     = 0;
     Command_Now.Reference_State.position_ref[2]     = 0;
@@ -120,7 +122,7 @@ int main(int argc, char **argv)
         while(ros::ok() && _DroneState.mode != "OFFBOARD")
         {
             Command_Now.header.stamp = ros::Time::now();
-            Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
+            Command_Now.Mode  = easondrone_msgs::ControlCommand::Idle;
             Command_Now.Command_ID = Command_Now.Command_ID + 1;
             Command_Now.source = NODE_NAME;
             Command_Now.Reference_State.yaw_ref = 999;
@@ -134,7 +136,7 @@ int main(int argc, char **argv)
         while(ros::ok() && _DroneState.mode != "OFFBOARD")
         {
             cout<<"[waypoint_tracking]: "<<"Please arm and switch to OFFBOARD mode."<<endl;
-            pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, "Please arm and switch to OFFBOARD mode.");
+            pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, "Please arm and switch to OFFBOARD mode.");
             ros::Duration(1.0).sleep();
             ros::spinOnce();
         }
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
     //takeoff
     cout<<"[waypoint_tracking]: "<<"Takeoff."<<endl;
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Takeoff;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Takeoff;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
 
     move_pub.publish(Command_Now);
@@ -153,13 +155,13 @@ int main(int argc, char **argv)
     
     //第一个目标点，左下角
     cout<<"[waypoint_tracking]: "<<"Moving to Point 1."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 1.");
+    pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 1.");
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode       = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame      = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode       = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame      = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0] = point1[0];
     Command_Now.Reference_State.position_ref[1] = point1[1];
     Command_Now.Reference_State.position_ref[2] = point1[2];
@@ -183,13 +185,13 @@ int main(int argc, char **argv)
         
     //第二个目标点，左上角
     cout<<"[waypoint_tracking]: "<<"Moving to Point 2."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 2.");
+    pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 2.");
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode       = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame      = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode       = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame      = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0] = point2[0];
     Command_Now.Reference_State.position_ref[1] = point2[1];
     Command_Now.Reference_State.position_ref[2] = point2[2];
@@ -212,13 +214,13 @@ int main(int argc, char **argv)
 
     //第三个目标点，右上角
     cout<<"[waypoint_tracking]: "<<"Moving to Point 3."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 3.");
+    pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 3.");
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode       = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame      = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode       = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame      = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0] = point3[0];
     Command_Now.Reference_State.position_ref[1] = point3[1];
     Command_Now.Reference_State.position_ref[2] = point3[2];
@@ -241,13 +243,13 @@ int main(int argc, char **argv)
 
     //第四个目标点，右下角
     cout<<"[waypoint_tracking]: "<<"Moving to Point 4."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 4.");
+    pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 4.");
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode       = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame      = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode       = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame      = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0] = point4[0];
     Command_Now.Reference_State.position_ref[1] = point4[1];
     Command_Now.Reference_State.position_ref[2] = point4[2];
@@ -270,13 +272,13 @@ int main(int argc, char **argv)
 
     //第五个目标点，回到起点
     cout<<"[waypoint_tracking]: "<<"Moving to Point 5."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 5.");
+    pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Moving to Point 5.");
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode       = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame      = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode       = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame      = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0] = point5[0];
     Command_Now.Reference_State.position_ref[1] = point5[1];
     Command_Now.Reference_State.position_ref[2] = point5[2];
@@ -299,9 +301,9 @@ int main(int argc, char **argv)
 
     //降落
     cout<<"[waypoint_tracking]: "<<"Landing."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Landing.");
+    pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Landing.");
     Command_Now.header.stamp                    = ros::Time::now();
-    Command_Now.Mode                            = prometheus_msgs::ControlCommand::Land;
+    Command_Now.Mode                            = easondrone_msgs::ControlCommand::Land;
     Command_Now.Command_ID                      = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
     move_pub.publish(Command_Now);

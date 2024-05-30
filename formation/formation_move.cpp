@@ -14,7 +14,7 @@
 void formation::init()
 {
     //创建控制命令发布者
-    cmd_pub = n.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    cmd_pub = n.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 }
 
 void formation::move()
@@ -63,9 +63,9 @@ void formation::move()
         {
             //将控制命令的其他变量进行填充
             control_data.header.stamp = ros::Time::now();
-            control_data.Mode = prometheus_msgs::ControlCommand::Move;
+            control_data.Mode = easondrone_msgs::ControlCommand::Move;
             control_data.source = "formation_move";
-            control_data.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
+            control_data.Reference_State.Move_frame = easondrone_msgs::PositionReference::ENU_FRAME;
             //发布控制命令数据
             cmd_pub.publish(control_data);
             ROS_INFO("Control command sent");

@@ -3,11 +3,11 @@
 #include <iostream>
 
 //topic 头文件
-#include <prometheus_msgs/DetectionInfo.h>
+#include <easondrone_msgs/DetectionInfo.h>
 
 using namespace std;
 
-prometheus_msgs::DetectionInfo Detection_Info;
+easondrone_msgs::DetectionInfo Detection_Info;
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>主函数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 int main(int argc, char **argv)
@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh("~");
 
     //【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    ros::Publisher detection_pub = nh.advertise<prometheus_msgs::DetectionInfo>("/prometheus/target", 10);
+    ros::Publisher detection_pub = nh.advertise<easondrone_msgs::DetectionInfo>("/easondrone/target", 10);
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>参数读取<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 

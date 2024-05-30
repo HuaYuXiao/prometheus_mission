@@ -15,7 +15,7 @@
 
 #include <Eigen/Eigen>
 #include <math.h>
-#include <prometheus_msgs/DetectionInfo.h>
+#include <easondrone_msgs/DetectionInfo.h>
 
 using namespace std;
 using namespace Eigen;
@@ -143,10 +143,10 @@ class UKF_NCA
         void Prediction(double delta_t);
 
         // Update Vision Measurement
-        void UpdateVision(const prometheus_msgs::DetectionInfo& mesurement);
+        void UpdateVision(const easondrone_msgs::DetectionInfo& mesurement);
 
         // UKF main function
-        VectorXd Run(const prometheus_msgs::DetectionInfo& mesurement, double delta);
+        VectorXd Run(const easondrone_msgs::DetectionInfo& mesurement, double delta);
 
     private:
 
@@ -154,7 +154,7 @@ class UKF_NCA
 
 };
 
-VectorXd UKF::Run(const prometheus_msgs::DetectionInfo& mesurement, double delta_t)
+VectorXd UKF::Run(const easondrone_msgs::DetectionInfo& mesurement, double delta_t)
 {
     if(!is_initialized)
     {
@@ -289,7 +289,7 @@ void UKF::Prediction(double delta_t)
     cout<<"P_pre="<<endl<<P_pre<<endl<<endl;
 }
 
-void UKF::UpdateVision(const prometheus_msgs::DetectionInfo& mesurement)
+void UKF::UpdateVision(const easondrone_msgs::DetectionInfo& mesurement)
 {  
     if (model_type == NCA)
     {

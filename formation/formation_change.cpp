@@ -15,7 +15,7 @@ void formation::init()
     //创建队形变化数据发布者
     ros::param::param<int>("~DIAMOND_intervals", diamond_intervals, 5);
     ros::param::param<string>("Location_source", location_source, "gps");
-    formation_type_pub = n.advertise<prometheus_msgs::Formation>("/prometheus/formation/change", 10);
+    formation_type_pub = n.advertise<easondrone_msgs::Formation>("/easondrone/formation/change", 10);
 }
 
 //是否等待函数
@@ -64,14 +64,14 @@ void formation::change()
                 //一字队形
                 case 0:
                     //判断当前队形是否为菱形队形,是菱形则先进入过渡队形
-                    if(type_last == prometheus_msgs::Formation::DIAMOND)
+                    if(type_last == easondrone_msgs::Formation::DIAMOND)
                     {
-                        formation_data.type = prometheus_msgs::Formation::DIAMOND_STAGE_1;
+                        formation_data.type = easondrone_msgs::Formation::DIAMOND_STAGE_1;
                         formation_type_pub.publish(formation_data);
                         is_wait(diamond_intervals);
                     }
                     //切换为一字队形
-                    formation_data.type = prometheus_msgs::Formation::HORIZONTAL;
+                    formation_data.type = easondrone_msgs::Formation::HORIZONTAL;
                     formation_type_pub.publish(formation_data);
                     printf_formation_type("Horizontal");
                     break;
@@ -79,14 +79,14 @@ void formation::change()
                 //三角队形
                 case 1:
                     //判断当前队形是否为菱形队形,是菱形则先进入过渡队形
-                    if(type_last == prometheus_msgs::Formation::DIAMOND)
+                    if(type_last == easondrone_msgs::Formation::DIAMOND)
                     {
-                        formation_data.type = prometheus_msgs::Formation::DIAMOND_STAGE_1;
+                        formation_data.type = easondrone_msgs::Formation::DIAMOND_STAGE_1;
                         formation_type_pub.publish(formation_data);
                         is_wait(diamond_intervals);
                     }
                     //切换为三角队形
-                    formation_data.type = prometheus_msgs::Formation::TRIANGEL;
+                    formation_data.type = easondrone_msgs::Formation::TRIANGEL;
                     formation_type_pub.publish(formation_data);
                     printf_formation_type("Triangle");
                     break;
@@ -101,11 +101,11 @@ void formation::change()
                             break;
                         }
                         //进入过渡队形
-                        formation_data.type = prometheus_msgs::Formation::DIAMOND_STAGE_1;
+                        formation_data.type = easondrone_msgs::Formation::DIAMOND_STAGE_1;
                         formation_type_pub.publish(formation_data);
                         is_wait(diamond_intervals);
                         //切换为菱形队形
-                        formation_data.type = prometheus_msgs::Formation::DIAMOND;
+                        formation_data.type = easondrone_msgs::Formation::DIAMOND;
                         formation_type_pub.publish(formation_data);
                         printf_formation_type("Diamond");
                         break;

@@ -3,7 +3,6 @@
 #include <iostream>
 #include <mission_utils.h>
 #include "message_utils.h"
-
 //topic 头文件
 #include <geometry_msgs/PoseStamped.h>
 
@@ -16,7 +15,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh("~");
 
     //【发布】目标点
-    ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/prometheus/planning/goal", 10);
+    ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/easondrone/planning/goal", 10);
 
     float x,y,z;
 
@@ -27,7 +26,6 @@ int main(int argc, char **argv)
   
     while(ros::ok())
     {
-
         // Waiting for input
         cout << "Please input the goal position:"<<endl;
         cout << "goal - x [m] : "<< endl;

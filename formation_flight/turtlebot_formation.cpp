@@ -3,21 +3,20 @@
 #include <Eigen/Eigen>
 #include <iostream>
 #include <mission_utils.h>
-
 //topic 头文件
 #include <geometry_msgs/Point.h>
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/DetectionInfo.h>
-#include <prometheus_msgs/PositionReference.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/DetectionInfo.h>
+#include <easondrone_msgs/PositionReference.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/ActuatorControl.h>
 #include <sensor_msgs/Imu.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/AttitudeReference.h>
-#include <prometheus_msgs/DroneState.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/AttitudeReference.h>
+#include <easondrone_msgs/DroneState.h>
 #include <nav_msgs/Path.h>
 #include <std_msgs/Int8.h>
 #include "message_utils.h"
@@ -25,6 +24,7 @@
 using namespace std;
 
 # define NODE_NAME "turtlebot_formation"
+
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 nav_msgs::Odometry tb3_1_odom;
 nav_msgs::Odometry tb3_2_odom;
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     ros::Subscriber tb3_4_odom_sub = nh.subscribe<nav_msgs::Odometry>("/tb3_4/odom", 10, tb3_4_odom_cb);
 
     // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
 
     ros::Publisher tb3_1_cmd_pub = nh.advertise<geometry_msgs::Twist>("/tb3_1/cmd_vel", 10);
     ros::Publisher tb3_2_cmd_pub = nh.advertise<geometry_msgs::Twist>("/tb3_2/cmd_vel", 10);

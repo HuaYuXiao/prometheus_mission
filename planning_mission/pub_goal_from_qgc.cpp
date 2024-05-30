@@ -20,7 +20,7 @@
 
 using namespace std;
 
-prometheus_msgs::DroneState _DroneState;
+easondrone_msgs::DroneState _DroneState;
 Eigen::Matrix3f R_Body_to_ENU;   
 
 // 航点列表回调函数
@@ -50,7 +50,7 @@ void timerCallback(const ros::TimerEvent & e)
 
 }
 
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr &msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr &msg)
 {
     _DroneState = *msg;
     R_Body_to_ENU = get_rotation_matrix(_DroneState.attitude[0], _DroneState.attitude[1], _DroneState.attitude[2]);
@@ -63,13 +63,13 @@ int main(int argc, char **argv)
     ros::NodeHandle nh("~");
 
     //【订阅】航点
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state",10,drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state",10,drone_state_cb);
     ros::Subscriber waypoint_sub = nh.subscribe<mavros_msgs::WaypointList>("/mavros/mission/waypoints", 100, waypoints_cb);
     ros::Subscriber local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 100, local_pos_cb);
     //【订阅】航点
     ros::Subscriber gps_sub = nh.subscribe<sensor_msgs::NavSatFix>("/mavros/global_position/global",100,gps_cb);
     //【发布】目标点
-    ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/prometheus/planning/goal", 10);
+    ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/easondrone/planning/goal", 10);
     ros::Rate rate(20.0);
     // ros::Timer ros::NodeHandle::createTimer(ros::Duration 30,timerCallback,bool oneshot = false);
     ros::Timer timer = nh.createTimer(ros::Duration(30),timerCallback);

@@ -8,28 +8,29 @@
  * 说明: 目标追踪示例程序
  *      1. 订阅目标位置(来自视觉的ros节点)
  *      2. 追踪算法及追踪策略
- *      3. 发布上层控制指令 (prometheus_msgs::ControlCommand)
+ *      3. 发布上层控制指令 (easondrone_msgs::ControlCommand)
 ***************************************************************************************************************************/
 //ros头文件
 #include <ros/ros.h>
 #include <Eigen/Eigen>
 #include <iostream>
 #include <mission_utils.h>
-
 //topic 头文件
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/DetectionInfo.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/DetectionInfo.h>
 #include "message_utils.h"
 
 using namespace std;
 using namespace Eigen;
+
 # define NODE_NAME "object_tracking"
+
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-prometheus_msgs::DroneState _DroneState;   
+easondrone_msgs::DroneState _DroneState;   
 Eigen::Vector3f drone_pos;
 //---------------------------------------Vision---------------------------------------------
-prometheus_msgs::DetectionInfo Detection_raw;          //目标位置[机体系下：前方x为正，右方y为正，下方z为正]
+easondrone_msgs::DetectionInfo Detection_raw;          //目标位置[机体系下：前方x为正，右方y为正，下方z为正]
 Eigen::Vector3f pos_body_frame;
 Eigen::Vector3f pos_body_enu_frame;     //原点位于质心，x轴指向前方，y轴指向左，z轴指向上的坐标系
 Eigen::Vector3f pos_des_prev;
@@ -44,12 +45,12 @@ Eigen::Vector3f camera_offset;
 float distance_to_setpoint;
 Eigen::Vector3f tracking_delta;
 //---------------------------------------Output---------------------------------------------
-prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
+easondrone_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>声 明 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 void printf_param();                                                                 //打印各项参数以供检查
 void printf_result();                                                                 //打印函数
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回 调 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void vision_cb(const prometheus_msgs::DetectionInfo::ConstPtr &msg)
+void vision_cb(const easondrone_msgs::DetectionInfo::ConstPtr &msg)
 {
     Detection_raw = *msg;
 
@@ -85,7 +86,7 @@ void vision_cb(const prometheus_msgs::DetectionInfo::ConstPtr &msg)
         is_detected = true;
     }
 }
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
 
@@ -105,17 +106,17 @@ int main(int argc, char **argv)
     // 【订阅】视觉消息 来自视觉节点
     //  方向定义： 识别算法发布的目标位置位于相机坐标系（从相机往前看，物体在相机右方x为正，下方y为正，前方z为正）
     //  标志位：   detected 用作标志位 ture代表识别到目标 false代表丢失目标
-    // 注意这里为了复用程序使用了/prometheus/object_detection/kcf_tracker作为话题名字，适用于椭圆、二维码、yolo等视觉算法
+    // 注意这里为了复用程序使用了/easondrone/object_detection/kcf_tracker作为话题名字，适用于椭圆、二维码、yolo等视觉算法
     // 故同时只能运行一种视觉识别程序，如果想同时追踪多个目标，这里请修改接口话题的名字
-    ros::Subscriber vision_sub = nh.subscribe<prometheus_msgs::DetectionInfo>("/prometheus/object_detection/kcf_tracker", 10, vision_cb);
+    ros::Subscriber vision_sub = nh.subscribe<easondrone_msgs::DetectionInfo>("/easondrone/object_detection/kcf_tracker", 10, vision_cb);
 
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state", 10, drone_state_cb);
 
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    ros::Publisher command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    ros::Publisher command_pub = nh.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 
     // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>参数读取<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     //视觉丢失次数阈值
     nh.param<int>("Thres_vision", Thres_vision, 10);
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
     while( _DroneState.position[2] < 0.3)
     {
         Command_Now.header.stamp = ros::Time::now();
-        Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
+        Command_Now.Mode  = easondrone_msgs::ControlCommand::Idle;
         Command_Now.Command_ID = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
         Command_Now.Reference_State.yaw_ref = 999;
@@ -177,11 +178,11 @@ int main(int argc, char **argv)
         ros::Duration(3.0).sleep();
         
         Command_Now.header.stamp                    = ros::Time::now();
-        Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+        Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
         Command_Now.Command_ID = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
-        Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-        Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+        Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+        Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
         Command_Now.Reference_State.position_ref[0]     = start_point_x;
         Command_Now.Reference_State.position_ref[1]     = start_point_y;
         Command_Now.Reference_State.position_ref[2]     = start_point_z;
@@ -219,18 +220,18 @@ int main(int argc, char **argv)
         distance_to_setpoint = pos_body_frame.norm();        
         if(!is_detected)
         {
-            Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+            Command_Now.Mode = easondrone_msgs::ControlCommand::Hold;
             pos_des_prev[0] = drone_pos[0];
             pos_des_prev[1] = drone_pos[1];
             pos_des_prev[2] = drone_pos[2];
             cout <<"[object_tracking]: Lost the Target "<< endl;
-            pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, "Lost the Target.");
+            pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, "Lost the Target.");
         }else 
         {
             cout <<"[object_tracking]: Tracking the Target, distance_to_setpoint : "<< distance_to_setpoint << " [m] " << endl;
-            Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
-            Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
-            Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;   //xy velocity z position
+            Command_Now.Mode = easondrone_msgs::ControlCommand::Move;
+            Command_Now.Reference_State.Move_frame = easondrone_msgs::PositionReference::ENU_FRAME;
+            Command_Now.Reference_State.Move_mode = easondrone_msgs::PositionReference::XYZ_POS;   //xy velocity z position
 
             Eigen::Vector3f vel_command;
             vel_command[0] = kpx_track * (pos_body_enu_frame[0] - tracking_delta[0]);

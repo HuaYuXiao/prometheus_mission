@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh("~");
 
     //【发布】目标点
-    ros::Publisher mission_cmd_pub = nh.advertise<geometry_msgs::PoseStamped>("/prometheus/mission/cmd", 10);
+    ros::Publisher mission_cmd_pub = nh.advertise<geometry_msgs::PoseStamped>("/easondrone/mission/cmd", 10);
 
     float x,y,z;
 

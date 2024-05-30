@@ -28,7 +28,7 @@ bool moving_target;
 float target_vel_xy[2];         // 目标移动速度 enu坐标系 单位：m/s
 std_msgs::Bool flag_start;
 //---------------------------------------Drone---------------------------------------------
-prometheus_msgs::DroneState _DroneState;   
+easondrone_msgs::DroneState _DroneState;   
 Eigen::Matrix3f R_Body_to_ENU;
 //---------------------------------------Vision---------------------------------------------
 Detection_result landpad_det;
@@ -50,12 +50,12 @@ float arm_height_to_ground;
 float arm_distance_to_pad;
 nav_msgs::Odometry GroundTruth;
 //---------------------------------------Output---------------------------------------------
-prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
+easondrone_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>函数声明<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 void printf_param();                                                                 //打印各项参数以供检查
 void printf_result();
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回调函数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void landpad_det_cb(const prometheus_msgs::DetectionInfo::ConstPtr &msg)
+void landpad_det_cb(const easondrone_msgs::DetectionInfo::ConstPtr &msg)
 {
     landpad_det.object_name = "landpad";
     landpad_det.Detection_info = *msg;
@@ -112,7 +112,7 @@ void groundtruth_cb(const nav_msgs::Odometry::ConstPtr& msg)
 {
     GroundTruth = *msg;
 }
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
 
@@ -138,28 +138,28 @@ int main(int argc, char **argv)
     //【订阅】降落板与无人机的相对位置及相对偏航角  单位：米   单位：弧度
     //  方向定义： 识别算法发布的目标位置位于相机坐标系（从相机往前看，物体在相机右方x为正，下方y为正，前方z为正）
     //  标志位：   detected 用作标志位 ture代表识别到目标 false代表丢失目标
-    ros::Subscriber landpad_det_sub = nh.subscribe<prometheus_msgs::DetectionInfo>("/prometheus/object_detection/ellipse_det", 10, landpad_det_cb);
+    ros::Subscriber landpad_det_sub = nh.subscribe<easondrone_msgs::DetectionInfo>("/easondrone/object_detection/ellipse_det", 10, landpad_det_cb);
 
     //【订阅】无人机高度(由tfmini测量得到)
-    ros::Subscriber tfmini_sub = nh.subscribe<sensor_msgs::Range>("/prometheus/tfmini_range", 10, tfmini_cb);
+    ros::Subscriber tfmini_sub = nh.subscribe<sensor_msgs::Range>("/easondrone/tfmini_range", 10, tfmini_cb);
 
     //【订阅】无人机状态
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state", 10, drone_state_cb);
 
     //【订阅】地面真值，此信息仅做比较使用 不强制要求提供
     ros::Subscriber groundtruth_sub = nh.subscribe<nav_msgs::Odometry>("/ground_truth/landing_pad", 10, groundtruth_cb);
 
     //【订阅】用于中断任务，直接降落
-    ros::Subscriber mission_sub = nh.subscribe<geometry_msgs::PoseStamped>("/prometheus/mission/cmd", 10, mission_cb);
+    ros::Subscriber mission_sub = nh.subscribe<geometry_msgs::PoseStamped>("/easondrone/mission/cmd", 10, mission_cb);
 
     // 【发布】 视觉模块开关量
-    ros::Publisher vision_switch_pub = nh.advertise<std_msgs::Bool>("/prometheus/switch/ellipse_det", 10);
+    ros::Publisher vision_switch_pub = nh.advertise<std_msgs::Bool>("/easondrone/switch/ellipse_det", 10);
 
     //【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    ros::Publisher command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    ros::Publisher command_pub = nh.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 
     // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>参数读取<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     //强制上锁高度
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
         while(ros::ok() && _DroneState.mode != "OFFBOARD")
         {
             Command_Now.header.stamp = ros::Time::now();
-            Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
+            Command_Now.Mode  = easondrone_msgs::ControlCommand::Idle;
             Command_Now.Command_ID = Command_Now.Command_ID + 1;
             Command_Now.source = NODE_NAME;
             Command_Now.Reference_State.yaw_ref = 999;
@@ -244,17 +244,17 @@ int main(int argc, char **argv)
     
     // 起飞
     cout<<"[autonomous_landing]: "<<"Takeoff to predefined position."<<endl;
-    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, "Takeoff to predefined position.");
+    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, "Takeoff to predefined position.");
 
 
     while( _DroneState.position[2] < 0.5)
     {      
         Command_Now.header.stamp                        = ros::Time::now();
-        Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+        Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
         Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
         Command_Now.source                              = NODE_NAME;
-        Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-        Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+        Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+        Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
         Command_Now.Reference_State.position_ref[0]     = start_point[0];
         Command_Now.Reference_State.position_ref[1]     = start_point[1];
         Command_Now.Reference_State.position_ref[2]     = start_point[2];
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
                 sprintf(message_chars, "Tracking the Landing Pad, distance_to_the_pad :   %f [m] .", distance_to_pad);
                 message = message_chars;
                 cout << message <<endl;
-                pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
             }
 
             if(sim_mode)
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
                     exec_state = TRACKING;
                     message = "Get the detection result.";
                     cout << message <<endl;
-                    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                     break;
                 }
 
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
                 vision_switch_pub.publish(vision_switch);
                 message = "Waiting for the detection result.";
                 cout << message <<endl;
-                pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                 ros::Duration(1.0).sleep();
                 break;
             }
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
                     exec_state = LOST;
                     message = "Lost the Landing Pad.";
                     cout << message <<endl;
-                    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                     break;
                 }   
 
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
                     exec_state = LANDING;
                     message = "Catched the Landing Pad.";
                     cout << message <<endl;
-                    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                     break;
                 }
                 //　达到最低高度，上锁降落
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
                     exec_state = LANDING;
                     message = "Reach the lowest height.";
                     cout << message <<endl;
-                    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                     break;
                 }
 
@@ -371,9 +371,9 @@ int main(int argc, char **argv)
                 Command_Now.header.stamp = ros::Time::now();
                 Command_Now.Command_ID   = Command_Now.Command_ID + 1;
                 Command_Now.source = NODE_NAME;
-                Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
-                Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
-                Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_VEL;   //xy velocity z position
+                Command_Now.Mode = easondrone_msgs::ControlCommand::Move;
+                Command_Now.Reference_State.Move_frame = easondrone_msgs::PositionReference::ENU_FRAME;
+                Command_Now.Reference_State.Move_mode = easondrone_msgs::PositionReference::XYZ_VEL;   //xy velocity z position
                 for (int i=0; i<3; i++)
                 {
                     Command_Now.Reference_State.velocity_ref[i] = kp_land[i] * landpad_det.pos_body_enu_frame[i];
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
                     lost_time = 0;
                     message = "Regain the Landing Pad.";
                     cout << message <<endl;
-                    pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                    pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                     break;
                 }   
                 
@@ -416,17 +416,17 @@ int main(int argc, char **argv)
                     Command_Now.header.stamp = ros::Time::now();
                     Command_Now.Command_ID   = Command_Now.Command_ID + 1;
                     Command_Now.source = NODE_NAME;
-                    Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+                    Command_Now.Mode = easondrone_msgs::ControlCommand::Hold;
 
                     ros::Duration(0.4).sleep();
                 }else
                 {
                     Command_Now.header.stamp                        = ros::Time::now();
-                    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+                    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
                     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
                     Command_Now.source                              = NODE_NAME;
-                    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_VEL;
-                    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::BODY_FRAME;
+                    Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_VEL;
+                    Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::BODY_FRAME;
                     Command_Now.Reference_State.velocity_ref[0]     = 0.0;
                     Command_Now.Reference_State.velocity_ref[1]     = 0.0;
                     Command_Now.Reference_State.velocity_ref[2]     = 0.1;
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
                         lost_time = 0;
                         message = "Mission failed, landing... ";
                         cout << message <<endl;
-                        pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+                        pub_message(message_pub, easondrone_msgs::Message::WARN, NODE_NAME, message);
                         break;
                     }
                 }
@@ -453,15 +453,15 @@ int main(int argc, char **argv)
                     Command_Now.header.stamp = ros::Time::now();
                     Command_Now.Command_ID   = Command_Now.Command_ID + 1;
                     Command_Now.source = NODE_NAME;
-                    Command_Now.Mode = prometheus_msgs::ControlCommand::Disarm;
-                    //Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
+                    Command_Now.Mode = easondrone_msgs::ControlCommand::Disarm;
+                    //Command_Now.Mode = easondrone_msgs::ControlCommand::Land;
                     command_pub.publish(Command_Now);
                 }else
                 {
                     Command_Now.header.stamp = ros::Time::now();
                     Command_Now.Command_ID   = Command_Now.Command_ID + 1;
                     Command_Now.source = NODE_NAME;
-                    Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
+                    Command_Now.Mode = easondrone_msgs::ControlCommand::Land;
                     command_pub.publish(Command_Now);
                 }
                 ros::Duration(1.0).sleep();

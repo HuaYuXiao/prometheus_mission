@@ -5,11 +5,13 @@
 #include "message_utils.h"
 
 using namespace std;
+
 # define NODE_NAME "circle_crossing"
+
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 Detection_result ellipse_det;
-prometheus_msgs::DroneState _DroneState;                                   //无人机状态量
-prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
+easondrone_msgs::DroneState _DroneState;                                   //无人机状态量
+easondrone_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
 Eigen::Matrix3f R_Body_to_ENU;
 ros::Publisher command_pub,message_pub;
 int State_Machine = 0;
@@ -20,7 +22,7 @@ void crossing();
 void return_start_point();
 void detection_result_printf(const struct Detection_result& test);
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回 调 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void ellipse_det_cb(const prometheus_msgs::DetectionInfo::ConstPtr& msg)
+void ellipse_det_cb(const easondrone_msgs::DetectionInfo::ConstPtr& msg)
 {
     ellipse_det.object_name = "circle";
     ellipse_det.Detection_info = *msg;
@@ -53,7 +55,7 @@ void ellipse_det_cb(const prometheus_msgs::DetectionInfo::ConstPtr& msg)
     }
 
 }
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg)
 {
     _DroneState = *msg;
     R_Body_to_ENU = get_rotation_matrix(_DroneState.attitude[0], _DroneState.attitude[1], _DroneState.attitude[2]);
@@ -67,18 +69,18 @@ int main(int argc, char **argv)
     //【订阅】图像识别结果，返回的结果为相机坐标系
     //  方向定义： 识别算法发布的目标位置位于相机坐标系（从相机往前看，物体在相机右方x为正，下方y为正，前方z为正）
     //  标志位：   detected 用作标志位 ture代表识别到目标 false代表丢失目标
-    ros::Subscriber ellipse_det_sub = nh.subscribe<prometheus_msgs::DetectionInfo>("/prometheus/object_detection/ellipse_det", 10, ellipse_det_cb);
+    ros::Subscriber ellipse_det_sub = nh.subscribe<easondrone_msgs::DetectionInfo>("/easondrone/object_detection/ellipse_det", 10, ellipse_det_cb);
 
     //【订阅】无人机当前状态
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state", 10, drone_state_cb);
 
     // 【发布】用于地面站显示的提示消息
-    ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
+    ros::Publisher message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message/main", 10);
     
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    command_pub = nh.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 
-    message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message", 10);
+    message_pub = nh.advertise<easondrone_msgs::Message>("/easondrone/message", 10);
 
     nh.param<float>("kpx_circle_track", kpx_circle_track, 0.1);
     nh.param<float>("kpy_circle_track", kpy_circle_track, 0.1);
@@ -110,21 +112,21 @@ int main(int argc, char **argv)
     while( _DroneState.position[2] < 0.3)
     {
         Command_Now.header.stamp = ros::Time::now();
-        Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
+        Command_Now.Mode  = easondrone_msgs::ControlCommand::Idle;
         Command_Now.Command_ID = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
         Command_Now.Reference_State.yaw_ref = 999;
         command_pub.publish(Command_Now);   
-        pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Switch to OFFBOARD and arm ....");
+        pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Switch to OFFBOARD and arm ....");
         cout << "Switch to OFFBOARD and arm ..."<<endl;
         ros::Duration(3.0).sleep();
         
         Command_Now.header.stamp = ros::Time::now();
-        Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+        Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
         Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
-        Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-        Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+        Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+        Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
         Command_Now.Reference_State.position_ref[0]     = 0.0;
         Command_Now.Reference_State.position_ref[1]     = 0.0;
         Command_Now.Reference_State.position_ref[2]     = 1.5;
@@ -160,13 +162,13 @@ int main(int argc, char **argv)
         {
             crossing();
             cout << "Crossing the circle..." <<  endl;
-            pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Crossing the circle...");
+            pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Crossing the circle...");
 
         }else if(State_Machine == 3)
         {
             return_start_point();
             cout << "Returning the start point..." <<  endl;
-            pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Returning the start point...");
+            pub_message(message_pub, easondrone_msgs::Message::NORMAL, NODE_NAME, "Returning the start point...");
         }
 
         //回调
@@ -180,11 +182,11 @@ int main(int argc, char **argv)
 
 void tracking()
 {
-    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_VEL;
-    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_VEL;
+    Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0]     = 0;
     Command_Now.Reference_State.position_ref[1]     = 0;
     Command_Now.Reference_State.position_ref[2]     = 0;
@@ -203,11 +205,11 @@ void tracking()
 
 void crossing()
 {
-    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::BODY_FRAME;
+    Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::BODY_FRAME;
     Command_Now.Reference_State.position_ref[0]     = 2.0;
     Command_Now.Reference_State.position_ref[1]     = 0;
     Command_Now.Reference_State.position_ref[2]     = 0;
@@ -222,11 +224,11 @@ void crossing()
 
 void return_start_point()
 {
-    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::BODY_FRAME;
+    Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::BODY_FRAME;
     Command_Now.Reference_State.position_ref[0]     = 0.0;
     Command_Now.Reference_State.position_ref[1]     = 3.0;
     Command_Now.Reference_State.position_ref[2]     = 0.0;
@@ -236,11 +238,11 @@ void return_start_point()
 
     ros::Duration(3.0).sleep();
 
-    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+    Command_Now.Reference_State.Move_mode           = easondrone_msgs::PositionReference::XYZ_POS;
+    Command_Now.Reference_State.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
     Command_Now.Reference_State.position_ref[0]     = 0.0;
     Command_Now.Reference_State.position_ref[1]     = 0.0;
     Command_Now.Reference_State.position_ref[2]     = 1.5;

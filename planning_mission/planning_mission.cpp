@@ -11,11 +11,11 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Imu.h>
-#include <prometheus_msgs/ControlCommand.h>
-#include <prometheus_msgs/DroneState.h>
-#include <prometheus_msgs/DetectionInfo.h>
-#include <prometheus_msgs/PositionReference.h>
-#include <prometheus_msgs/AttitudeReference.h>
+#include <easondrone_msgs/ControlCommand.h>
+#include <easondrone_msgs/DroneState.h>
+#include <easondrone_msgs/DetectionInfo.h>
+#include <easondrone_msgs/PositionReference.h>
+#include <easondrone_msgs/AttitudeReference.h>
 #include <quadrotor_msgs/PositionCommand.h>
 #include <cmath>
 
@@ -24,12 +24,12 @@ using namespace std;
 # define NODE_NAME "planning_mission"
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
-prometheus_msgs::DroneState _DroneState;                                   //无人机状态量
+easondrone_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
+easondrone_msgs::DroneState _DroneState;                                   //无人机状态量
 ros::Publisher command_pub;
 
 geometry_msgs::PoseStamped final_goal;                              // goal
-prometheus_msgs::PositionReference planner_cmd;          // fast planner cmd
+easondrone_msgs::PositionReference planner_cmd;          // fast planner cmd
 
 float thresh_no_replan_ = 0.2;
 bool control_yaw_flag = false;
@@ -43,7 +43,7 @@ double last_angle = 0.0;
 void planner();
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>回 调 函 数<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg){
+void planner_cmd_cb(const easondrone_msgs::PositionReference::ConstPtr& msg){
     flag_get_cmd = true;
 
     planner_cmd = *msg;
@@ -52,8 +52,8 @@ void planner_cmd_cb(const prometheus_msgs::PositionReference::ConstPtr& msg){
 void quadrotor_planner_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     flag_get_cmd = true;
 
-    planner_cmd.Move_mode = prometheus_msgs::PositionReference::POS_VEL_ACC;
-    planner_cmd.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+    planner_cmd.Move_mode = easondrone_msgs::PositionReference::POS_VEL_ACC;
+    planner_cmd.Move_frame          = easondrone_msgs::PositionReference::ENU_FRAME;
 
     planner_cmd.position_ref[0] = msg->position.x;
     planner_cmd.position_ref[1] = msg->position.y;
@@ -71,7 +71,7 @@ void quadrotor_planner_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& m
     planner_cmd.yaw_rate_ref        = msg->yaw_dot;
 }
 
-void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg){
+void drone_state_cb(const easondrone_msgs::DroneState::ConstPtr& msg){
     _DroneState = *msg;
 }
 
@@ -97,21 +97,21 @@ int main(int argc, char **argv){
     nh.param<bool>("planning_mission/control_yaw_flag", control_yaw_flag, false);
     
     //【订阅】无人机当前状态
-    ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
+    ros::Subscriber drone_state_sub = nh.subscribe<easondrone_msgs::DroneState>("/easondrone/drone_state", 10, drone_state_cb);
     //【订阅】来自planning的指令
-    ros::Subscriber planner_sub = nh.subscribe<prometheus_msgs::PositionReference>("/prometheus/position_cmd", 10, planner_cmd_cb);
+    ros::Subscriber planner_sub = nh.subscribe<easondrone_msgs::PositionReference>("/easondrone/position_cmd", 10, planner_cmd_cb);
     //【订阅】来自EGO-Planner的指令
-    ros::Subscriber quadrotor_planner_sub = nh.subscribe<quadrotor_msgs::PositionCommand>("/prometheus/quadrotor_position_cmd", 10, quadrotor_planner_cmd_cb);
+    ros::Subscriber quadrotor_planner_sub = nh.subscribe<quadrotor_msgs::PositionCommand>("/easondrone/quadrotor_position_cmd", 10, quadrotor_planner_cmd_cb);
     //【订阅】目标点
-    ros::Subscriber goal_sub = nh.subscribe<geometry_msgs::PoseStamped>("/prometheus/planning/goal", 1, goal_cb);
+    ros::Subscriber goal_sub = nh.subscribe<geometry_msgs::PoseStamped>("/easondrone/planning/goal", 1, goal_cb);
     
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
-    command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
+    command_pub = nh.advertise<easondrone_msgs::ControlCommand>("/easondrone/control_command", 10);
 
     // 设置cout的精度为小数点后两位
     std::cout << std::fixed << std::setprecision(2);
 
-    cout << "[mission] prometheus_mission initialized!" << endl;
+    cout << "[mission] easondrone_mission initialized!" << endl;
 
     while (ros::ok()){
         //回调
@@ -128,11 +128,11 @@ int main(int argc, char **argv){
             if (distance_to_goal <= control_yaw_flag){
                 // 抵达目标附近，则停止速度控制，改为位置控制
                 planner_cmd.header.stamp = ros::Time::now();
-                Command_Now.Mode = prometheus_msgs::ControlCommand::Move;
+                Command_Now.Mode = easondrone_msgs::ControlCommand::Move;
                 Command_Now.Command_ID = Command_Now.Command_ID + 1;
                 Command_Now.source = NODE_NAME;
-                Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
-                Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
+                Command_Now.Reference_State.Move_mode = easondrone_msgs::PositionReference::XYZ_POS;
+                Command_Now.Reference_State.Move_frame = easondrone_msgs::PositionReference::ENU_FRAME;
 
                 Command_Now.Reference_State.position_ref[0] = final_goal.pose.position.x;
                 Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
@@ -167,11 +167,11 @@ int main(int argc, char **argv){
                     //  1. planner failed, directly publish move cmd
                     //  2. planner not initialized yet
 //                    planner_cmd.header.stamp = ros::Time::now();
-//                    Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+//                    Command_Now.Mode = easondrone_msgs::ControlCommand::Hold;
 //                    Command_Now.Command_ID = Command_Now.Command_ID + 1;
 //                    Command_Now.source = NODE_NAME;
-//                    Command_Now.Reference_State.Move_mode = prometheus_msgs::PositionReference::XYZ_POS;
-//                    Command_Now.Reference_State.Move_frame = prometheus_msgs::PositionReference::ENU_FRAME;
+//                    Command_Now.Reference_State.Move_mode = easondrone_msgs::PositionReference::XYZ_POS;
+//                    Command_Now.Reference_State.Move_frame = easondrone_msgs::PositionReference::ENU_FRAME;
 //                    Command_Now.Reference_State.position_ref[0] = final_goal.pose.position.x;
 //                    Command_Now.Reference_State.position_ref[1] = final_goal.pose.position.y;
 //                    Command_Now.Reference_State.position_ref[2] = final_goal.pose.position.z;
@@ -212,10 +212,10 @@ void planner(){
     }
 
     Command_Now.header.stamp = ros::Time::now();
-    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+    Command_Now.Mode                                = easondrone_msgs::ControlCommand::Move;
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
-    // prometheus_msgs::PositionReference is part of  prometheus_msgs::ControlCommand.Reference_State
+    // easondrone_msgs::PositionReference is part of  easondrone_msgs::ControlCommand.Reference_State
     Command_Now.Reference_State = planner_cmd;
 
     command_pub.publish(Command_Now);
